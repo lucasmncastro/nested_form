@@ -14,14 +14,35 @@ require "spec_helper"
 
     context "with no options" do
       subject do
-        builder.new(:item, project, template, {}, proc {})
+        builder.new(:item, project, template, {})
       end
 
-      describe '#link_to_add' do
+      describe '#link_to_add', type: 'view' do
         it "behaves similar to a Rails link_to" do
-          subject.link_to_add("Add", :tasks).should == '<a href="javascript:void(0)" class="add_nested_fields" data-association="tasks" data-blueprint-id="tasks_fields_blueprint">Add</a>'
-          subject.link_to_add("Add", :tasks, :class => "foo", :href => "url").should == '<a href="url" class="foo add_nested_fields" data-association="tasks" data-blueprint-id="tasks_fields_blueprint">Add</a>'
-          subject.link_to_add(:tasks) { "Add" }.should == '<a href="javascript:void(0)" class="add_nested_fields" data-association="tasks" data-blueprint-id="tasks_fields_blueprint">Add</a>'
+          subject.link_to_add("Add", :tasks).should have_selector(
+            'a', 
+            'text' => 'Add',
+            'href' => 'javascript:void(0)', 
+            'class' => 'add_nested_fields', 
+            'data-association' => "tasks",
+            'data-blueprint-id' => "tasks_fields_blueprint"
+          )
+          subject.link_to_add("Add", :tasks, :class => "foo", :href => "url").should have_selector(
+            'a',
+            'text' => 'Add',
+            'href' => 'url',
+            'class' => 'foo add_nested_fields',
+            'data-association' => 'tasks',
+            'data-blueprint-id' => 'tasks_fields_blueprint'
+          ) 
+          subject.link_to_add(:tasks) { "Add" }.should have_selector(
+            'a',
+            'text' => 'Add',
+            'href' => 'javascript:void(0)', 
+            'class' => 'add_nested_fields', 
+            'data-association' => "tasks",
+            'data-blueprint-id' => "tasks_fields_blueprint"
+          )
         end
 
         it 'raises ArgumentError when missing association is provided' do
@@ -37,18 +58,53 @@ require "spec_helper"
         end
       end
 
-      describe '#link_to_remove' do
+      describe '#link_to_remove', type: 'view' do
         it "behaves similar to a Rails link_to" do
-          subject.link_to_remove("Remove").should == '<input id="item__destroy" name="item[_destroy]" type="hidden" value="false" /><a href="javascript:void(0)" class="remove_nested_fields">Remove</a>'
-          subject.link_to_remove("Remove", :class => "foo", :href => "url").should == '<input id="item__destroy" name="item[_destroy]" type="hidden" value="false" /><a href="url" class="foo remove_nested_fields">Remove</a>'
-          subject.link_to_remove { "Remove" }.should == '<input id="item__destroy" name="item[_destroy]" type="hidden" value="false" /><a href="javascript:void(0)" class="remove_nested_fields">Remove</a>'
+          subject.link_to_remove("Remove").should have_selector(
+            'input', 
+            'id' => 'item__destroy',
+            'name' => 'item[_destroy]', 
+            'type' => 'hidden', 
+            'value' => 'false', 
+          )
+          subject.link_to_remove("Remove").should have_selector(
+            'a', 
+            'href' => 'javascript:void(0)',
+            'class' => 'remove_nested_fields',
+            'text' => 'Remove'
+          )
+
+          subject.link_to_remove("Remove", :class => 'foo', :href => 'url').should have_selector(
+            'a', 
+            'href' => 'url',
+            'class' => 'foo remove_nested_fields',
+            'text' => 'Remove'
+          )
+
+          subject.link_to_remove { "Remove" }.should have_selector(
+            'input', 
+            'text' => 'Remove',
+            'id' => 'item__destroy',
+            'type' => 'hidden',
+            'value' => 'false'
+          )
+          subject.link_to_remove { "Remove" }.should have_selector(
+            'a', 
+            'href' => 'javascript:void(0)',
+            'class' => 'remove_nested_fields',
+            'text' => 'Remove'
+          )
         end
 
         it 'has data-association attribute' do
           project.tasks.build
           subject.fields_for(:tasks, :builder => builder) do |tf|
             tf.link_to_remove 'Remove'
-          end.should match '<a.+data-association="tasks">Remove</a>'
+          end.should have_selector(
+            'a',
+            'text' => 'Remove',
+            'data-association' => 'tasks'
+          )
         end
 
         context 'when association is declared in a model by the class_name' do
@@ -56,7 +112,11 @@ require "spec_helper"
             project.assignments.build
             subject.fields_for(:assignments, :builder => builder) do |tf|
               tf.link_to_remove 'Remove'
-            end.should match '<a.+data-association="assignments">Remove</a>'
+            end.should have_selector(
+              'a',
+              'text' => 'Remove',
+              'data-association' => 'assignments'
+            )
           end
         end
 
@@ -68,23 +128,31 @@ require "spec_helper"
               tf.fields_for(:milestones, :builder => builder) do |mf|
                 mf.link_to_remove 'Remove'
               end
-            end.should match '<a.+data-association="milestones">Remove</a>'
+            end.should have_selector(
+              'a',
+              'text' => 'Remove',
+              'data-association' => 'milestones'
+            )
           end
         end
 
         context 'has_one association' do
           let(:company) { Company.new }
-          subject { builder.new(:item, company, template, {}, proc {}) }
+          subject { builder.new(:item, company, template, {}) }
 
           it 'properly detects association name' do
             subject.fields_for(:project, :builder => builder) do |f|
               f.link_to_remove 'Remove'
-            end.should match '<a.+data-association="project">Remove</a>'
+            end.should have_selector(
+              'a',
+              'text' => 'Remove',
+              'data-association' => 'projects'
+            )
           end
         end
       end
 
-      describe '#fields_for' do
+      describe '#fields_for', type: 'view' do
         it "wraps nested fields each in a div with class" do
           2.times { project.tasks.build }
 
@@ -94,7 +162,12 @@ require "spec_helper"
             subject.fields_for(:tasks) { "Task" }
           end
 
-          fields.should == '<div class="fields">Task</div><div class="fields">Task</div>'
+          fields.should have_selector(
+            'div',
+            'class' => 'fields',
+            'text' => 'Task',
+            :count => 2
+          )
         end
       end
 
@@ -164,7 +237,7 @@ require "spec_helper"
     end
 
     context "with options" do
-      subject { builder.new(:item, project, template, {}, proc {}) }
+      subject { builder.new(:item, project, template, {}) }
 
       context "when model_object given" do
         it "should use it instead of new generated" do
